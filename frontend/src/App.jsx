@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
   CheckCircle2, 
-  Circle, 
   Calendar, 
   Edit3, 
   Trash2, 
@@ -10,8 +9,12 @@ import {
   AlertTriangle, 
   ListTodo,
   Loader2,
-  Clock
+  Clock,
+  GripVertical,
+  Search
 } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 function App() {
   const [tasks, setTasks] = useState([]);
@@ -32,15 +35,16 @@ function App() {
   // Deletion Confirmation Modal State
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
-  // Fetch tasks on component mount
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Drag and Drop State
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
 
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/tasks');
+      const response = await fetch(`${API_BASE}/api/tasks`);
       if (!response.ok) {
         throw new Error('Failed to fetch tasks');
       }
@@ -55,6 +59,12 @@ function App() {
     }
   };
 
+  // Fetch tasks on component mount
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchTasks();
+  }, []);
+
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -62,7 +72,7 @@ function App() {
     try {
       if (editingTaskId) {
         // Update task
-        const response = await fetch(`/api/tasks/${editingTaskId}`, {
+        const response = await fetch(`${API_BASE}/api/tasks/${editingTaskId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, description, dueDate })
@@ -75,7 +85,7 @@ function App() {
         cancelEdit();
       } else {
         // Add task
-        const response = await fetch('/api/tasks', {
+        const response = await fetch(`${API_BASE}/api/tasks`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, description, dueDate })
@@ -95,7 +105,7 @@ function App() {
 
   const handleToggleComplete = async (task) => {
     try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
+      const response = await fetch(`${API_BASE}/api/tasks/${task.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ completed: !task.completed })
@@ -137,7 +147,7 @@ function App() {
     if (!confirmDeleteId) return;
 
     try {
-      const response = await fetch(`/api/tasks/${confirmDeleteId}`, {
+      const response = await fetch(`${API_BASE}/api/tasks/${confirmDeleteId}`, {
         method: 'DELETE'
       });
 
@@ -153,6 +163,44 @@ function App() {
     } catch (err) {
       console.error(err);
       setError('Failed to delete task.');
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragStart = (e, id) => {
+    setDraggedTaskId(id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnter = (e, targetId) => {
+    e.preventDefault();
+    if (!draggedTaskId || draggedTaskId === targetId) return;
+
+    const sourceIndex = tasks.findIndex(t => t.id === draggedTaskId);
+    const targetIndex = tasks.findIndex(t => t.id === targetId);
+
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    const newTasks = [...tasks];
+    const [draggedItem] = newTasks.splice(sourceIndex, 1);
+    newTasks.splice(targetIndex, 0, draggedItem);
+
+    setTasks(newTasks);
+  };
+
+  const handleDragEnd = async () => {
+    setDraggedTaskId(null);
+    try {
+      const taskIds = tasks.map(t => t.id);
+      const response = await fetch(`${API_BASE}/api/tasks/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskIds })
+      });
+      if (!response.ok) throw new Error('Failed to save order');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to persist task order.');
     }
   };
 
@@ -176,11 +224,18 @@ function App() {
     });
   };
 
-  // Filter logic
+  // Filter and search logic
   const filteredTasks = tasks.filter(task => {
-    if (filter === 'active') return !task.completed;
-    if (filter === 'completed') return task.completed;
-    return true; // 'all'
+    // Filter by completed status
+    if (filter === 'active' && task.completed) return false;
+    if (filter === 'completed' && !task.completed) return false;
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      return task.title.toLowerCase().includes(searchQuery.trim().toLowerCase());
+    }
+    
+    return true;
   });
 
   const totalTasksCount = tasks.length;
@@ -301,6 +356,26 @@ function App() {
         <section>
           {/* Toolbar Filters */}
           <div className="toolbar">
+            <div className="search-container">
+              <Search className="search-icon" size={15} />
+              <input
+                type="text"
+                className="search-input"
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button 
+                  className="search-clear-btn" 
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+
             <div className="filter-tabs">
               <button 
                 id="filter-all"
@@ -337,9 +412,11 @@ function App() {
               <ListTodo className="empty-icon" size={36} />
               <h3>No tasks found</h3>
               <p style={{ marginTop: '8px', fontSize: '14px' }}>
-                {filter === 'all' 
-                  ? "Start by typing a title in the sidebar to create your first task!" 
-                  : `You don't have any ${filter} tasks right now.`}
+                {searchQuery.trim()
+                  ? "No tasks match your search query."
+                  : filter === 'all' 
+                    ? "Start by typing a title in the sidebar to create your first task!" 
+                    : `You don't have any ${filter} tasks right now.`}
               </p>
             </div>
           ) : (
@@ -349,8 +426,17 @@ function App() {
                 return (
                   <div 
                     key={task.id} 
-                    className={`task-card ${task.completed ? 'completed' : 'active'}`}
+                    className={`task-card ${task.completed ? 'completed' : 'active'} ${draggedTaskId === task.id ? 'dragging' : ''}`}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, task.id)}
+                    onDragEnd={handleDragEnd}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnter={(e) => handleDragEnter(e, task.id)}
                   >
+                    <div className="drag-handle" title="Drag to reorder">
+                      <GripVertical size={14} />
+                    </div>
+
                     <div className="checkbox-container">
                       <button 
                         className="checkbox-custom" 

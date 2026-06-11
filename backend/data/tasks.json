@@ -1,5 +1,13 @@
 [
   {
+    "id": "11ac53d2-d31b-4825-8c28-3d115b921b4a",
+    "title": "A Test Task",
+    "description": "Verify me",
+    "dueDate": "",
+    "completed": false,
+    "createdAt": "2026-06-11T16:49:31.317Z"
+  },
+  {
     "id": "1",
     "title": "Welcome to your Task Manager!",
     "description": "This is a sample task to help you get started. You can toggle completion, edit details, or delete this task.",
@@ -8,12 +16,12 @@
     "createdAt": "2026-06-11T12:00:00.000Z"
   },
   {
-    "id": "2",
-    "title": "Complete project setup",
-    "description": "Initialize the React frontend and Node Express backend, configure environments, and establish basic API communication.",
-    "dueDate": "2026-06-11",
-    "completed": true,
-    "createdAt": "2026-06-11T11:00:00.000Z"
+    "id": "0dee41cf-63cf-4444-888f-050b14763138",
+    "title": "Z Second Task",
+    "description": "",
+    "dueDate": "",
+    "completed": false,
+    "createdAt": "2026-06-11T16:51:17.516Z"
   },
   {
     "id": "3",
@@ -22,13 +30,5 @@
     "dueDate": "",
     "completed": false,
     "createdAt": "2026-06-11T10:00:00.000Z"
-  },
-  {
-    "id": "fdcbc1e8-b63c-4859-93ae-78c0cb193136",
-    "title": "do homework",
-    "description": "maths homework",
-    "dueDate": "",
-    "completed": true,
-    "createdAt": "2026-06-11T07:56:33.947Z"
   }
 ]

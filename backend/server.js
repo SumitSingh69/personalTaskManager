@@ -37,13 +37,11 @@ async function writeTasks(tasks) {
   await fs.writeFile(DATA_FILE, JSON.stringify(tasks, null, 2), 'utf-8');
 }
 
-// GET all tasks (sorted by createdAt newest first)
+// GET all tasks (in stored order)
 app.get('/api/tasks', async (req, res) => {
   try {
     const tasks = await readTasks();
-    // Sort newest first
-    const sortedTasks = tasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    res.json(sortedTasks);
+    res.json(tasks);
   } catch (error) {
     console.error('Error reading tasks:', error);
     res.status(500).json({ error: 'Failed to retrieve tasks' });
@@ -68,13 +66,45 @@ app.post('/api/tasks', async (req, res) => {
       createdAt: new Date().toISOString()
     };
 
-    tasks.push(newTask);
+    tasks.unshift(newTask);
     await writeTasks(tasks);
 
     res.status(201).json(newTask);
   } catch (error) {
     console.error('Error creating task:', error);
     res.status(500).json({ error: 'Failed to create task' });
+  }
+});
+
+// PUT reorder tasks
+app.put('/api/tasks/reorder', async (req, res) => {
+  try {
+    const { taskIds } = req.body;
+    if (!Array.isArray(taskIds)) {
+      return res.status(400).json({ error: 'taskIds array is required' });
+    }
+
+    const tasks = await readTasks();
+    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const reorderedTasks = [];
+
+    for (const id of taskIds) {
+      if (taskMap.has(id)) {
+        reorderedTasks.push(taskMap.get(id));
+        taskMap.delete(id);
+      }
+    }
+
+    // Append any tasks that weren't included in the taskIds list
+    for (const remainingTask of taskMap.values()) {
+      reorderedTasks.push(remainingTask);
+    }
+
+    await writeTasks(reorderedTasks);
+    res.json(reorderedTasks);
+  } catch (error) {
+    console.error('Error reordering tasks:', error);
+    res.status(500).json({ error: 'Failed to reorder tasks' });
   }
 });
 
