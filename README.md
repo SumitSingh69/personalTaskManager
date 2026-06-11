@@ -3,8 +3,8 @@
 TaskSphere is a premium glassmorphic personal task manager built to organize goals and streamline daily schedules. I chose to implement the Task Manager exercise, creating a responsive web application that lets users create, edit, toggle, search, reorder via drag-and-drop, and permanently delete tasks. The interface is optimized with modern dark-mode aesthetics, glowing accents, and smooth feedback animations.
 
 ## Live Demo Links
+- **Production URL:** [https://personal-task-manager-orpin-eta.vercel.app](https://personal-task-manager-orpin-eta.vercel.app)
 - **Local Host:** [http://localhost:5173](http://localhost:5173) *(runs locally after following the running instructions)*
-- **Staging / Production:** *Not currently deployed (designed for local deployment).*
 
 ---
 
